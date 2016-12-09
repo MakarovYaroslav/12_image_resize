@@ -3,6 +3,53 @@ from PIL import Image
 import os
 
 
+def calculate_new_size(args, image):
+    base_width, base_height = image.size[0], image.size[1]
+    if args.width and args.height:
+        new_width, new_height = int(args.width), int(args.height)
+        base_ratio = base_width / float(base_height)
+        new_ratio = int(new_width) / float(new_height)
+        if base_ratio != new_ratio:
+            print("Пропорции нового изображения не совпадают с пропорциями "
+                  "исходного изображения!")
+        return new_width, new_height
+    elif args.width:
+        new_width = int(args.width)
+        ratio = (new_width / float(base_width))
+        new_height = int(base_height * float(ratio))
+        return new_width, new_height
+    elif args.height:
+        new_height = int(args.height)
+        ratio = (new_height / float(base_height))
+        new_width = int(base_width * float(ratio))
+        return new_width, new_height
+    if args.scale:
+        new_width = int(base_width * float(args.scale))
+        new_height = int(base_height * float(args.scale))
+        return new_width, new_height
+
+
+def resize_image(image, new_size):
+    new_width, new_height = new_size
+    resized_img = image.resize((new_width, new_height), Image.ANTIALIAS)
+    return resized_img
+
+
+def save_resized_image(args, resized_image):
+    if not args.output:
+        dirname = os.path.dirname(args.path)
+        basename = os.path.basename(args.path).split('.')[0]
+        fileformat = os.path.basename(args.path).split('.')[1]
+        result_width = str(resized_image.size[0])
+        result_height = str(resized_image.size[1])
+        output = "%s/%s__%sx%s.%s" % (
+            dirname, basename, result_width, result_height, fileformat)
+    else:
+        output = args.output
+    resized_image.save(output, resized_image.format)
+    return
+
+
 def test_arguments(args):
     if (args.scale and args.width and args.height) or \
        (args.scale and args.width) or (args.scale and args.height):
@@ -14,68 +61,6 @@ def test_arguments(args):
               "размера изображения!")
         return False
     return True
-
-
-def resize_image(args):
-    img = Image.open(args.path)
-    if args.width and args.height:
-        resized_image = resize_with_width_and_height(
-            img, int(args.width), int(args.height))
-    elif args.width:
-        resized_image = resize_with_width(img, int(args.width))
-    elif args.height:
-        resized_image = resize_with_height(img, int(args.height))
-    if args.scale:
-        resized_image = resize_with_scale(img, float(args.scale))
-    if not args.output:
-        dirname = os.path.dirname(args.path)
-        basename = os.path.basename(args.path).split('.')[0]
-        fileformat = os.path.basename(args.path).split('.')[1]
-        result_width = str(resized_image.size[0])
-        result_height = str(resized_image.size[1])
-        output = dirname + '/' + basename + '__' + result_width + 'x' + result_height + '.' + fileformat
-    else:
-        output = args.output
-    resized_image.save(output, img.format)
-    return
-
-
-def resize_with_width_and_height(image, width, height):
-    base_width = image.size[0]
-    base_height = image.size[1]
-    base_ratio = base_width / float(base_height)
-    new_ratio = width / float(height)
-    if base_ratio != new_ratio:
-        print("Пропорции нового изображения не совпадают с пропорциями "
-              "исходного изображения!")
-    resized_img = image.resize((width, height), Image.ANTIALIAS)
-    return resized_img
-
-
-def resize_with_height(image, new_height):
-    base_height = image.size[1]
-    ratio = (new_height / float(base_height))
-    new_width = int(image.size[0] * float(ratio))
-    resized_img = image.resize(
-        (new_width, new_height), Image.ANTIALIAS)
-    return resized_img
-
-
-def resize_with_width(image, new_width):
-    base_width = image.size[0]
-    ratio = (new_width / float(base_width))
-    new_height = int(image.size[1] * float(ratio))
-    resized_img = image.resize(
-        (new_width, new_height), Image.ANTIALIAS)
-    return resized_img
-
-
-def resize_with_scale(image, scale):
-    new_width = int(image.size[0] * scale)
-    new_height = int(image.size[1] * scale)
-    resized_img = image.resize(
-        (new_width, new_height), Image.ANTIALIAS)
-    return resized_img
 
 
 if __name__ == '__main__':
@@ -91,4 +76,7 @@ if __name__ == '__main__':
                         help="путь для сохранения полученного файл")
     arguments = parser.parse_args()
     if test_arguments(arguments):
-        resize_image(arguments)
+        img = Image.open(arguments.path)
+        new_size = calculate_new_size(arguments, img)
+        new_image = resize_image(img, new_size)
+        save_resized_image(arguments, new_image)
