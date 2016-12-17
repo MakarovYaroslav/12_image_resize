@@ -3,30 +3,37 @@ from PIL import Image
 import os
 
 
-def calculate_new_size(args, image):
-    base_width, base_height = image.size[0], image.size[1]
-    if args.width and args.height:
-        new_width, new_height = int(args.width), int(args.height)
+def calculate_new_size(width, height, image):
+    base_width, base_height = image.size
+    if width and height:
+        new_width, new_height = int(width), int(height)
         base_ratio = base_width / float(base_height)
         new_ratio = int(new_width) / float(new_height)
-        if base_ratio != new_ratio:
-            print("Пропорции нового изображения не совпадают с пропорциями "
-                  "исходного изображения!")
+        display_if_ratio_is_not_equal(base_ratio, new_ratio)
         return new_width, new_height
-    elif args.width:
-        new_width = int(args.width)
+    elif width:
+        new_width = int(width)
         ratio = (new_width / float(base_width))
         new_height = int(base_height * float(ratio))
         return new_width, new_height
-    elif args.height:
-        new_height = int(args.height)
+    elif height:
+        new_height = int(height)
         ratio = (new_height / float(base_height))
         new_width = int(base_width * float(ratio))
         return new_width, new_height
-    if args.scale:
-        new_width = int(base_width * float(args.scale))
-        new_height = int(base_height * float(args.scale))
-        return new_width, new_height
+
+
+def calculate_new_size_with_scale(scale, image):
+    base_width, base_height = image.size
+    new_width = int(base_width * float(scale))
+    new_height = int(base_height * float(scale))
+    return new_width, new_height
+
+
+def display_if_ratio_is_not_equal(ratio_1, ratio_2):
+    if ratio_1 is not ratio_2:
+        print("Пропорции нового изображения не совпадают с пропорциями "
+              "исходного изображения!")
 
 
 def resize_image(image, new_size):
@@ -53,12 +60,8 @@ def save_resized_image(args, resized_image):
 def test_arguments(args):
     if (args.scale and args.width and args.height) or \
        (args.scale and args.width) or (args.scale and args.height):
-        print("Укажите или размер новой картинки или масштаб.\n"
-              "Совместное указание этих аргументов недопустимо!")
         return False
     if not (args.scale or args.width or args.height):
-        print("Не указано ни одного параметра для изменения "
-              "размера изображения!")
         return False
     return True
 
@@ -74,9 +77,15 @@ if __name__ == '__main__':
                         help="во сколько раз увеличить изображение")
     parser.add_argument("--output",
                         help="путь для сохранения полученного файл")
-    arguments = parser.parse_args()
-    if test_arguments(arguments):
-        img = Image.open(arguments.path)
-        new_size = calculate_new_size(arguments, img)
+    args = parser.parse_args()
+    if test_arguments(args):
+        img = Image.open(args.path)
+        if args.scale:
+            new_size = calculate_new_size_with_scale(args.scale, img)
+        else:
+            new_size = calculate_new_size(args.width, args.height, img)
         new_image = resize_image(img, new_size)
-        save_resized_image(arguments, new_image)
+        save_resized_image(args, new_image)
+    else:
+        print("Ошибка! Проверьте корректность ввода аргументов.\n"
+              "Для вызова справки введите команду 'python3 image_resize.py -h'")
