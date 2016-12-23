@@ -7,9 +7,6 @@ def calculate_new_size(width, height, image):
     base_width, base_height = image.size
     if width and height:
         new_width, new_height = int(width), int(height)
-        base_ratio = base_width / float(base_height)
-        new_ratio = int(new_width) / float(new_height)
-        display_if_ratio_is_not_equal(base_ratio, new_ratio)
         return new_width, new_height
     elif width:
         new_width = int(width)
@@ -25,15 +22,17 @@ def calculate_new_size(width, height, image):
 
 def calculate_new_size_with_scale(scale, image):
     base_width, base_height = image.size
-    new_width = int(base_width * float(scale))
-    new_height = int(base_height * float(scale))
+    new_width = int(base_width * scale)
+    new_height = int(base_height * scale)
     return new_width, new_height
 
 
-def display_if_ratio_is_not_equal(ratio_1, ratio_2):
-    if ratio_1 is not ratio_2:
-        print("Пропорции нового изображения не совпадают с пропорциями "
-              "исходного изображения!")
+def if_proportions_mismatch(base_size, new_size):
+    base_width, base_height = base_size
+    new_width, new_height = new_size
+    base_proportion = base_width / float(base_height)
+    new_proportion = int(new_width) / float(new_height)
+    return base_proportion != new_proportion
 
 
 def resize_image(image, new_size):
@@ -81,9 +80,12 @@ if __name__ == '__main__':
     if test_arguments(args):
         img = Image.open(args.path)
         if args.scale:
-            new_size = calculate_new_size_with_scale(args.scale, img)
+            new_size = calculate_new_size_with_scale(float(args.scale), img)
         else:
             new_size = calculate_new_size(args.width, args.height, img)
+            if if_proportions_mismatch(img.size, new_size):
+                print("Пропорции нового изображения не совпадают с пропорциями"
+                      " исходного изображения!")
         new_image = resize_image(img, new_size)
         save_resized_image(args, new_image)
     else:
